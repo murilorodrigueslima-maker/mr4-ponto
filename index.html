@@ -1,0 +1,967 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>MR4 Distribuidora — Ponto Digital</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700&display=swap" rel="stylesheet">
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+  import { getFirestore, collection, doc, setDoc, getDoc, getDocs, deleteDoc, onSnapshot, query, where, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyDJRQYM4K43Bc1Lfg4EhfBz-aNtkPprAs8",
+    authDomain: "mr4-ponto.firebaseapp.com",
+    projectId: "mr4-ponto",
+    storageBucket: "mr4-ponto.firebasestorage.app",
+    messagingSenderId: "848211361584",
+    appId: "1:848211361584:web:2732e1893122f4a23452f5"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  // Expõe para o código global
+  window._db = db;
+  window._col = collection;
+  window._doc = doc;
+  window._setDoc = setDoc;
+  window._getDoc = getDoc;
+  window._getDocs = getDocs;
+  window._deleteDoc = deleteDoc;
+  window._onSnapshot = onSnapshot;
+  window._query = query;
+  window._where = where;
+  window._orderBy = orderBy;
+  window._firebaseReady = true;
+  window.dispatchEvent(new Event('firebaseReady'));
+</script>
+<style>
+:root {
+  --laranja: #FF6B1A;
+  --laranja-escuro: #B33F00;
+  --preto: #0A0A0A;
+  --cinza-escuro: #1A1A1A;
+  --cinza-medio: #2A2A2A;
+  --cinza-borda: #333;
+  --cinza-texto: #888;
+  --branco: #F5F5F5;
+  --verde: #22C55E;
+  --vermelho: #EF4444;
+  --amarelo: #F59E0B;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Barlow', sans-serif; background: var(--preto); color: var(--branco); min-height: 100vh; }
+
+.tela { display: none; min-height: 100vh; }
+.tela.ativa { display: flex; flex-direction: column; }
+
+/* LOGIN */
+#login { align-items: center; justify-content: center; padding: 2rem; }
+.login-box { width: 100%; max-width: 380px; }
+.logo-login { display: flex; align-items: center; gap: 12px; margin-bottom: 2.5rem; }
+.logo-text { font-family: 'Barlow Condensed', sans-serif; font-size: 28px; font-weight: 700; color: var(--branco); letter-spacing: 1px; }
+.logo-text span { color: var(--laranja); }
+.login-titulo { font-size: 22px; font-weight: 600; margin-bottom: 6px; }
+.login-sub { font-size: 14px; color: var(--cinza-texto); margin-bottom: 2rem; }
+.campo { margin-bottom: 1rem; }
+.campo label { display: block; font-size: 12px; font-weight: 600; color: var(--cinza-texto); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px; }
+.campo input { width: 100%; background: var(--cinza-escuro); border: 1px solid var(--cinza-borda); border-radius: 8px; padding: 12px 14px; font-size: 15px; color: var(--branco); font-family: 'Barlow', sans-serif; }
+.campo input:focus { outline: none; border-color: var(--laranja); }
+.btn-laranja { width: 100%; background: var(--laranja); color: white; border: none; border-radius: 8px; padding: 13px; font-size: 15px; font-weight: 600; font-family: 'Barlow', sans-serif; cursor: pointer; }
+.btn-laranja:hover { background: var(--laranja-escuro); }
+.btn-ghost { background: transparent; border: 1px solid var(--cinza-borda); color: var(--cinza-texto); border-radius: 8px; padding: 10px 18px; font-size: 13px; font-family: 'Barlow', sans-serif; cursor: pointer; }
+.btn-ghost:hover { border-color: var(--laranja); color: var(--laranja); }
+.login-link { text-align: center; margin-top: 1.5rem; font-size: 13px; color: var(--cinza-texto); }
+.login-link a { color: var(--laranja); text-decoration: none; cursor: pointer; }
+.erro { color: var(--vermelho); font-size: 13px; margin-top: 8px; display: none; }
+
+/* DASHBOARD */
+#dashboard { flex-direction: column; }
+.topbar { background: var(--cinza-escuro); border-bottom: 1px solid var(--cinza-borda); padding: 0 1.5rem; height: 56px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+.topbar-logo { display: flex; align-items: center; gap: 10px; }
+.topbar-nome { font-family: 'Barlow Condensed', sans-serif; font-size: 20px; font-weight: 700; letter-spacing: 1px; }
+.topbar-nome span { color: var(--laranja); }
+.topbar-right { display: flex; align-items: center; gap: 12px; }
+.topbar-data { font-size: 12px; color: var(--cinza-texto); }
+.btn-sair { background: transparent; border: 1px solid var(--cinza-borda); color: var(--cinza-texto); border-radius: 6px; padding: 6px 12px; font-size: 12px; font-family: 'Barlow', sans-serif; cursor: pointer; }
+.btn-sair:hover { border-color: var(--vermelho); color: var(--vermelho); }
+.sync-badge { font-size: 11px; color: var(--verde); display: flex; align-items: center; gap: 4px; }
+.sync-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--verde); animation: pulse 2s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+.dash-nav { background: var(--cinza-escuro); border-bottom: 1px solid var(--cinza-borda); display: flex; padding: 0 1.5rem; gap: 2px; overflow-x: auto; flex-shrink: 0; }
+.nav-item { padding: 12px 16px; font-size: 13px; font-weight: 500; color: var(--cinza-texto); cursor: pointer; border-bottom: 2px solid transparent; white-space: nowrap; }
+.nav-item.ativo { color: var(--laranja); border-bottom-color: var(--laranja); }
+.nav-item:hover { color: var(--branco); }
+
+.dash-body { flex: 1; overflow-y: auto; padding: 1.5rem; }
+.dash-secao { display: none; }
+.dash-secao.ativa { display: block; }
+
+.metrics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 1.5rem; }
+.metric-card { background: var(--cinza-escuro); border: 1px solid var(--cinza-borda); border-radius: 10px; padding: 16px; }
+.metric-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--cinza-texto); margin-bottom: 8px; }
+.metric-valor { font-size: 28px; font-weight: 700; font-family: 'Barlow Condensed', sans-serif; }
+.metric-valor.verde { color: var(--verde); }
+.metric-valor.vermelho { color: var(--vermelho); }
+.metric-valor.laranja { color: var(--laranja); }
+.metric-sub { font-size: 12px; color: var(--cinza-texto); margin-top: 4px; }
+
+.secao-titulo { font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--cinza-texto); margin-bottom: 12px; }
+.secao-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; flex-wrap: wrap; gap: 8px; }
+.tabela-wrap { background: var(--cinza-escuro); border: 1px solid var(--cinza-borda); border-radius: 10px; overflow: hidden; margin-bottom: 1.5rem; overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 500px; }
+th { padding: 12px 16px; text-align: left; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--cinza-texto); border-bottom: 1px solid var(--cinza-borda); }
+td { padding: 12px 16px; border-bottom: 1px solid #222; color: var(--branco); }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: rgba(255,107,26,0.04); }
+.vazio { text-align: center; padding: 2rem; color: var(--cinza-texto); font-size: 14px; }
+
+.badge { display: inline-block; padding: 3px 10px; border-radius: 99px; font-size: 11px; font-weight: 600; }
+.badge.presente { background: rgba(34,197,94,0.15); color: var(--verde); }
+.badge.ausente { background: rgba(239,68,68,0.15); color: var(--vermelho); }
+.badge.atrasou { background: rgba(245,158,11,0.15); color: var(--amarelo); }
+.badge.extra { background: rgba(34,197,94,0.15); color: var(--verde); }
+.badge.debito { background: rgba(239,68,68,0.15); color: var(--vermelho); }
+.badge.neutro { background: rgba(136,136,136,0.15); color: var(--cinza-texto); }
+.badge.dentro { background: rgba(34,197,94,0.15); color: var(--verde); }
+.badge.fora { background: rgba(245,158,11,0.15); color: var(--amarelo); }
+
+.avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--laranja-escuro); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: var(--branco); flex-shrink: 0; overflow: hidden; }
+.avatar img { width: 100%; height: 100%; object-fit: cover; }
+.func-cell { display: flex; align-items: center; gap: 10px; }
+.func-cell-info .nome { font-size: 13px; font-weight: 500; }
+.func-cell-info .cargo { font-size: 11px; color: var(--cinza-texto); }
+
+.btn-acao { background: transparent; border: 1px solid var(--cinza-borda); color: var(--cinza-texto); border-radius: 6px; padding: 5px 10px; font-size: 11px; font-family: 'Barlow', sans-serif; cursor: pointer; }
+.btn-acao:hover { border-color: var(--laranja); color: var(--laranja); }
+.btn-acao.danger:hover { border-color: var(--vermelho); color: var(--vermelho); }
+.btn-novo { background: var(--laranja); color: white; border: none; border-radius: 8px; padding: 8px 16px; font-size: 13px; font-weight: 600; font-family: 'Barlow', sans-serif; cursor: pointer; }
+.btn-novo:hover { background: var(--laranja-escuro); }
+
+.barra-wrap { background: #333; border-radius: 99px; height: 5px; margin-top: 5px; }
+.barra { height: 5px; border-radius: 99px; }
+
+/* MODAIS */
+.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 100; align-items: center; justify-content: center; padding: 1rem; }
+.modal-overlay.aberto { display: flex; }
+.modal { background: var(--cinza-escuro); border: 1px solid var(--cinza-borda); border-radius: 14px; padding: 1.5rem; width: 100%; max-width: 480px; max-height: 90vh; overflow-y: auto; }
+.modal-titulo { font-size: 17px; font-weight: 700; margin-bottom: 1.25rem; display: flex; align-items: center; justify-content: space-between; }
+.modal-fechar { background: transparent; border: none; color: var(--cinza-texto); font-size: 20px; cursor: pointer; }
+.modal-fechar:hover { color: var(--branco); }
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.form-grid .full { grid-column: 1 / -1; }
+.form-campo { display: flex; flex-direction: column; gap: 5px; }
+.form-campo label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--cinza-texto); }
+.form-campo input, .form-campo select, .form-campo textarea { background: var(--cinza-medio); border: 1px solid var(--cinza-borda); border-radius: 7px; padding: 10px 12px; font-size: 14px; color: var(--branco); font-family: 'Barlow', sans-serif; width: 100%; }
+.form-campo input:focus, .form-campo select:focus, .form-campo textarea:focus { outline: none; border-color: var(--laranja); }
+.form-campo select option { background: var(--cinza-escuro); }
+.form-campo textarea { resize: vertical; min-height: 80px; }
+.foto-upload { border: 2px dashed var(--cinza-borda); border-radius: 10px; padding: 1.5rem; text-align: center; cursor: pointer; margin-bottom: 1rem; }
+.foto-upload:hover { border-color: var(--laranja); }
+.foto-preview { width: 80px; height: 80px; border-radius: 50%; margin: 0 auto 8px; overflow: hidden; background: var(--cinza-medio); display: flex; align-items: center; justify-content: center; }
+.foto-preview img { width: 100%; height: 100%; object-fit: cover; }
+.foto-upload p { font-size: 12px; color: var(--cinza-texto); }
+.modal-footer { display: flex; gap: 10px; margin-top: 1.25rem; justify-content: flex-end; }
+.btn-cancelar { background: transparent; border: 1px solid var(--cinza-borda); color: var(--cinza-texto); border-radius: 8px; padding: 10px 18px; font-size: 14px; font-family: 'Barlow', sans-serif; cursor: pointer; }
+.btn-salvar { background: var(--laranja); color: white; border: none; border-radius: 8px; padding: 10px 22px; font-size: 14px; font-weight: 600; font-family: 'Barlow', sans-serif; cursor: pointer; }
+.btn-salvar:hover { background: var(--laranja-escuro); }
+
+/* FICHA */
+.ficha { background: var(--cinza-escuro); border: 1px solid var(--cinza-borda); border-radius: 12px; padding: 1.5rem; margin-bottom: 1rem; }
+.ficha-header { display: flex; align-items: center; gap: 16px; margin-bottom: 1rem; }
+.ficha-avatar { width: 64px; height: 64px; border-radius: 50%; background: var(--laranja-escuro); display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 700; overflow: hidden; flex-shrink: 0; }
+.ficha-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.ficha-nome { font-size: 18px; font-weight: 700; }
+.ficha-cargo { font-size: 13px; color: var(--cinza-texto); margin-top: 2px; }
+.ficha-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; margin-bottom: 1rem; }
+.ficha-campo { background: var(--cinza-medio); border-radius: 8px; padding: 10px 12px; }
+.ficha-campo .fc-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--cinza-texto); margin-bottom: 4px; }
+.ficha-campo .fc-valor { font-size: 14px; }
+.ficha-acoes { display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* ESTRELAS */
+.estrelas { display: flex; gap: 4px; }
+.estrela { font-size: 20px; cursor: pointer; color: #444; }
+.estrela.ativa { color: var(--laranja); }
+.obs-card { background: var(--cinza-escuro); border: 1px solid var(--cinza-borda); border-radius: 10px; padding: 1rem; margin-bottom: 1rem; }
+.obs-card textarea { background: var(--cinza-medio); border: 1px solid var(--cinza-borda); border-radius: 7px; padding: 10px; font-size: 13px; color: var(--branco); font-family: 'Barlow', sans-serif; width: 100%; min-height: 80px; resize: vertical; margin-bottom: 8px; }
+.obs-card textarea:focus { outline: none; border-color: var(--laranja); }
+
+/* LINK CARDS */
+.link-card { background: var(--cinza-escuro); border: 1px solid var(--cinza-borda); border-radius: 10px; padding: 14px; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.link-url { font-size: 12px; color: var(--laranja); word-break: break-all; flex: 1; }
+.btn-copiar { background: transparent; border: 1px solid var(--cinza-borda); color: var(--cinza-texto); border-radius: 6px; padding: 6px 12px; font-size: 12px; font-family: 'Barlow', sans-serif; cursor: pointer; flex-shrink: 0; }
+.btn-copiar:hover { border-color: var(--laranja); color: var(--laranja); }
+
+/* TELA FUNCIONÁRIO */
+#tela-func { align-items: stretch; }
+.func-app { flex: 1; display: flex; flex-direction: column; max-width: 420px; margin: 0 auto; width: 100%; }
+.func-topbar { background: var(--laranja); padding: 16px 20px 14px; display: flex; align-items: center; justify-content: space-between; }
+.func-topbar-logo { font-family: 'Barlow Condensed', sans-serif; font-size: 18px; font-weight: 700; color: white; }
+.func-topbar-user { font-size: 12px; color: rgba(255,255,255,0.85); text-align: right; }
+.func-topbar-user strong { display: block; font-size: 13px; color: white; }
+.func-body { flex: 1; padding: 1.5rem 1.25rem; overflow-y: auto; }
+.func-relogio { text-align: center; margin-bottom: 1.5rem; }
+.func-hora { font-family: 'Barlow Condensed', sans-serif; font-size: 52px; font-weight: 700; line-height: 1; }
+.func-data { font-size: 13px; color: var(--cinza-texto); margin-top: 4px; }
+
+.btn-ponto-wrap { display: flex; justify-content: center; margin-bottom: 1.5rem; }
+.btn-ponto-grande { width: 130px; height: 130px; border-radius: 50%; border: 3px solid var(--laranja); background: rgba(255,107,26,0.1); display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; gap: 6px; transition: all 0.2s; }
+.btn-ponto-grande:hover { background: rgba(255,107,26,0.2); transform: scale(0.97); }
+.btn-ponto-grande.saida-almoco { border-color: var(--amarelo); background: rgba(245,158,11,0.1); }
+.btn-ponto-grande.retorno { border-color: var(--verde); background: rgba(34,197,94,0.1); }
+.btn-ponto-grande.saida { border-color: var(--vermelho); background: rgba(239,68,68,0.1); }
+.btn-ponto-label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; }
+
+.camera-area { background: var(--cinza-escuro); border: 1px solid var(--cinza-borda); border-radius: 12px; overflow: hidden; margin-bottom: 1rem; }
+.camera-video { width: 100%; aspect-ratio: 4/3; object-fit: cover; display: block; background: #111; }
+.camera-controles { padding: 12px; display: flex; gap: 10px; }
+.btn-capturar { flex: 1; background: var(--laranja); color: white; border: none; border-radius: 8px; padding: 11px; font-size: 14px; font-weight: 600; font-family: 'Barlow', sans-serif; cursor: pointer; }
+.btn-cancelar-cam { background: transparent; border: 1px solid var(--cinza-borda); color: var(--cinza-texto); border-radius: 8px; padding: 11px 14px; font-size: 14px; font-family: 'Barlow', sans-serif; cursor: pointer; }
+
+.loc-info { display: flex; align-items: center; gap: 8px; background: var(--cinza-escuro); border: 1px solid var(--cinza-borda); border-radius: 8px; padding: 10px 12px; margin-bottom: 1rem; font-size: 13px; }
+.loc-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.loc-dot.ok { background: var(--verde); }
+.loc-dot.warn { background: var(--amarelo); }
+.loc-dot.loading { background: var(--cinza-texto); }
+
+.comprovante { background: var(--cinza-escuro); border: 1px solid var(--laranja); border-radius: 12px; padding: 1.25rem; margin-bottom: 1rem; }
+.comp-titulo { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--laranja); margin-bottom: 12px; display: flex; align-items: center; gap: 6px; }
+.comp-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #2a2a2a; font-size: 13px; }
+.comp-row:last-child { border-bottom: none; }
+.comp-label { color: var(--cinza-texto); }
+.comp-val { font-weight: 600; }
+.comp-val.verde { color: var(--verde); }
+.comp-val.warn { color: var(--amarelo); }
+
+.hist-titulo { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--cinza-texto); margin-bottom: 10px; }
+.hist-item { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid #1a1a1a; }
+.hist-item:last-child { border-bottom: none; }
+.hist-hora { font-size: 13px; font-weight: 600; min-width: 44px; }
+.hist-tipo { font-size: 13px; color: var(--cinza-texto); flex: 1; }
+.hist-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+
+.banco-card { background: var(--cinza-escuro); border: 1px solid var(--cinza-borda); border-radius: 10px; padding: 14px; margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center; }
+.banco-label { font-size: 12px; color: var(--cinza-texto); margin-bottom: 4px; }
+.banco-valor { font-size: 20px; font-weight: 700; font-family: 'Barlow Condensed', sans-serif; }
+
+.func-tabs { display: flex; background: var(--cinza-escuro); border-top: 1px solid var(--cinza-borda); }
+.func-tab { flex: 1; padding: 12px 8px; text-align: center; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--cinza-texto); cursor: pointer; border-top: 2px solid transparent; }
+.func-tab.ativo { color: var(--laranja); border-top-color: var(--laranja); }
+.func-aba { display: none; }
+.func-aba.ativa { display: block; }
+
+.aviso { background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.3); border-radius: 8px; padding: 10px 14px; font-size: 13px; color: var(--amarelo); margin-bottom: 1rem; }
+.msg-estado { text-align: center; padding: 1.5rem; font-size: 14px; color: var(--cinza-texto); }
+
+.loading-spin { display: inline-block; width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.3); border-top-color: white; border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle; margin-right: 6px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.notif { position: fixed; bottom: 1rem; left: 50%; transform: translateX(-50%); background: var(--cinza-escuro); border: 1px solid var(--cinza-borda); border-radius: 10px; padding: 10px 18px; font-size: 13px; z-index: 200; display: none; white-space: nowrap; }
+.notif.verde { border-color: var(--verde); color: var(--verde); }
+.notif.vermelho { border-color: var(--vermelho); color: var(--vermelho); }
+
+canvas#canvasFoto { display: none; }
+
+@media (max-width: 480px) {
+  .dash-body { padding: 1rem; }
+  .topbar { padding: 0 1rem; }
+  .form-grid { grid-template-columns: 1fr; }
+  .form-grid .full { grid-column: 1; }
+}
+</style>
+</head>
+<body>
+
+<div class="notif" id="notif"></div>
+
+<!-- LOGIN -->
+<div class="tela ativa" id="login">
+  <div class="login-box">
+    <div class="logo-login">
+      <svg width="44" height="44" viewBox="0 0 44 44" fill="none">
+        <path d="M8 32 Q4 22 8 14 L14 10 Q18 8 22 8 Q26 8 30 10 L36 14 Q40 22 36 32 L30 36 Q26 38 22 38 Q18 38 14 36 Z" stroke="#FF6B1A" stroke-width="2" fill="none"/>
+        <path d="M10 26 L16 20 L22 24 L28 18 L34 22" stroke="#FF6B1A" stroke-width="2" stroke-linecap="round"/>
+        <circle cx="22" cy="16" r="3" fill="#FF6B1A"/>
+      </svg>
+      <div class="logo-text"><span>MR4</span> DISTRIBUIDORA</div>
+    </div>
+    <div class="login-titulo">Acesso do gestor</div>
+    <div class="login-sub">Sistema de ponto digital</div>
+    <div class="campo">
+      <label>Senha</label>
+      <input type="password" id="inp-senha" placeholder="••••••••" onkeydown="if(event.key==='Enter')fazerLogin()">
+    </div>
+    <div class="erro" id="erro-login">Senha incorreta.</div>
+    <button class="btn-laranja" onclick="fazerLogin()">Entrar</button>
+    <div class="login-link"><a onclick="irFuncLogin()">Sou funcionário — bater ponto</a></div>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<div class="tela" id="dashboard">
+  <div class="topbar">
+    <div class="topbar-logo">
+      <svg width="28" height="28" viewBox="0 0 44 44" fill="none">
+        <path d="M8 32 Q4 22 8 14 L14 10 Q18 8 22 8 Q26 8 30 10 L36 14 Q40 22 36 32 L30 36 Q26 38 22 38 Q18 38 14 36 Z" stroke="#FF6B1A" stroke-width="2" fill="none"/>
+        <path d="M10 26 L16 20 L22 24 L28 18 L34 22" stroke="#FF6B1A" stroke-width="2" stroke-linecap="round"/>
+        <circle cx="22" cy="16" r="3" fill="#FF6B1A"/>
+      </svg>
+      <div class="topbar-nome"><span>MR4</span> PONTO</div>
+    </div>
+    <div class="topbar-right">
+      <div class="sync-badge"><div class="sync-dot"></div>Firebase</div>
+      <div class="topbar-data" id="topbar-data"></div>
+      <button class="btn-sair" onclick="sair()">Sair</button>
+    </div>
+  </div>
+  <div class="dash-nav">
+    <div class="nav-item ativo" onclick="mudarSecao('hoje',this)">Hoje</div>
+    <div class="nav-item" onclick="mudarSecao('registros',this)">Registros</div>
+    <div class="nav-item" onclick="mudarSecao('banco',this)">Banco de horas</div>
+    <div class="nav-item" onclick="mudarSecao('funcionarios',this)">Funcionários</div>
+    <div class="nav-item" onclick="mudarSecao('links',this)">Links de acesso</div>
+  </div>
+  <div class="dash-body">
+    <div class="dash-secao ativa" id="sec-hoje">
+      <div class="metrics-grid" id="metrics-hoje"></div>
+      <div class="secao-titulo">Status hoje</div>
+      <div class="tabela-wrap">
+        <table><thead><tr><th>Funcionário</th><th>Entrada</th><th>S.Almoço</th><th>Retorno</th><th>Saída</th><th>Total</th><th>Status</th></tr></thead>
+        <tbody id="tbody-hoje"><tr><td colspan="7" class="vazio">Carregando...</td></tr></tbody></table>
+      </div>
+      <div class="secao-titulo">Últimas batidas</div>
+      <div id="ultimas-batidas"></div>
+    </div>
+
+    <div class="dash-secao" id="sec-registros">
+      <div class="secao-header">
+        <div class="secao-titulo" style="margin:0">Registros</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <select id="fil-func-reg" style="background:var(--cinza-escuro);border:1px solid var(--cinza-borda);color:var(--branco);border-radius:7px;padding:7px 10px;font-size:13px;font-family:'Barlow',sans-serif;"><option value="">Todos</option></select>
+          <input type="month" id="fil-mes" style="background:var(--cinza-escuro);border:1px solid var(--cinza-borda);color:var(--branco);border-radius:7px;padding:7px 10px;font-size:13px;font-family:'Barlow',sans-serif;">
+          <button class="btn-ghost" onclick="renderRegistros()">Filtrar</button>
+        </div>
+      </div><br>
+      <div class="tabela-wrap">
+        <table><thead><tr><th>Funcionário</th><th>Data</th><th>Entrada</th><th>S.Almoço</th><th>Retorno</th><th>Saída</th><th>Total</th><th>Saldo</th><th>GPS</th><th>Foto</th></tr></thead>
+        <tbody id="tbody-registros"><tr><td colspan="10" class="vazio">Nenhum registro.</td></tr></tbody></table>
+      </div>
+    </div>
+
+    <div class="dash-secao" id="sec-banco">
+      <div class="metrics-grid" id="metrics-banco"></div>
+      <div id="banco-cards"></div>
+    </div>
+
+    <div class="dash-secao" id="sec-funcionarios">
+      <div class="secao-header">
+        <div class="secao-titulo" style="margin:0">Funcionários</div>
+        <button class="btn-novo" onclick="abrirModalFunc()">+ Novo funcionário</button>
+      </div><br>
+      <div id="lista-funcionarios"><div class="vazio">Carregando...</div></div>
+    </div>
+
+    <div class="dash-secao" id="sec-links">
+      <div class="secao-titulo">Links de acesso — envie pelo WhatsApp</div>
+      <div id="lista-links"></div>
+      <p style="font-size:13px;color:var(--cinza-texto);margin-top:1rem;">O funcionário abre o link no celular e adiciona à tela inicial. O link já identifica ele automaticamente.</p>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL FUNCIONÁRIO -->
+<div class="modal-overlay" id="modal-func">
+  <div class="modal">
+    <div class="modal-titulo"><span id="modal-func-titulo">Novo funcionário</span><button class="modal-fechar" onclick="fecharModal('modal-func')">×</button></div>
+    <div class="foto-upload" onclick="document.getElementById('inp-foto').click()">
+      <div class="foto-preview" id="foto-preview">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#555" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+      </div>
+      <p>Clique para adicionar foto</p>
+      <input type="file" id="inp-foto" accept="image/*" style="display:none" onchange="previewFoto(this)">
+    </div>
+    <div class="form-grid">
+      <div class="form-campo full"><label>Nome completo *</label><input type="text" id="f-nome" placeholder="Ex: João Silva"></div>
+      <div class="form-campo"><label>CPF</label><input type="text" id="f-cpf" placeholder="000.000.000-00"></div>
+      <div class="form-campo"><label>RG</label><input type="text" id="f-rg"></div>
+      <div class="form-campo"><label>Nascimento</label><input type="date" id="f-nasc"></div>
+      <div class="form-campo"><label>Telefone</label><input type="text" id="f-tel" placeholder="(85) 9 0000-0000"></div>
+      <div class="form-campo full"><label>Endereço</label><input type="text" id="f-end"></div>
+      <div class="form-campo full"><label>Cargo *</label><input type="text" id="f-cargo" placeholder="Ex: Vendedor"></div>
+      <div class="form-campo"><label>Admissão</label><input type="date" id="f-admissao"></div>
+      <div class="form-campo"><label>Salário (R$)</label><input type="number" id="f-salario" min="0" step="0.01"></div>
+      <div class="form-campo full"><label>Jornada</label>
+        <select id="f-jornada"><option value="8">8h/dia — 44h/semana</option><option value="6">6h/dia — 30h/semana</option></select>
+      </div>
+      <div class="form-campo full"><label>Observações</label><textarea id="f-obs"></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancelar" onclick="fecharModal('modal-func')">Cancelar</button>
+      <button class="btn-salvar" onclick="salvarFuncionario()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL FICHA/AVALIAÇÃO -->
+<div class="modal-overlay" id="modal-ficha">
+  <div class="modal">
+    <div class="modal-titulo"><span>Ficha do funcionário</span><button class="modal-fechar" onclick="fecharModal('modal-ficha')">×</button></div>
+    <div id="ficha-conteudo"></div>
+    <div class="secao-titulo" style="margin-top:1rem;">Avaliação de desempenho</div>
+    <div class="obs-card">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+        <span style="font-size:13px;color:var(--cinza-texto);">Nota:</span>
+        <div class="estrelas" id="estrelas-av"></div>
+      </div>
+      <div style="margin-bottom:8px;"><label style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--cinza-texto);display:block;margin-bottom:5px;">Metas</label><input type="text" id="inp-metas" style="background:var(--cinza-medio);border:1px solid var(--cinza-borda);border-radius:7px;padding:8px 10px;font-size:13px;color:var(--branco);font-family:'Barlow',sans-serif;width:100%;" placeholder="Descreva as metas..."></div>
+      <div style="margin-bottom:8px;"><label style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--cinza-texto);display:block;margin-bottom:5px;">Observações do gestor</label><textarea id="inp-obs-av" style="background:var(--cinza-medio);border:1px solid var(--cinza-borda);border-radius:7px;padding:8px 10px;font-size:13px;color:var(--branco);font-family:'Barlow',sans-serif;width:100%;min-height:80px;resize:vertical;"></textarea></div>
+      <div style="margin-bottom:8px;"><label style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--cinza-texto);display:block;margin-bottom:5px;">Advertências</label><textarea id="inp-adv" style="background:var(--cinza-medio);border:1px solid var(--cinza-borda);border-radius:7px;padding:8px 10px;font-size:13px;color:var(--branco);font-family:'Barlow',sans-serif;width:100%;min-height:60px;resize:vertical;"></textarea></div>
+      <button class="btn-salvar" style="width:100%" onclick="salvarAvaliacao()">Salvar avaliação</button>
+    </div>
+    <div class="modal-footer"><button class="btn-cancelar" onclick="fecharModal('modal-ficha')">Fechar</button></div>
+  </div>
+</div>
+
+<!-- MODAL FOTO REGISTRO -->
+<div class="modal-overlay" id="modal-foto-reg">
+  <div class="modal" style="max-width:320px;text-align:center;">
+    <div class="modal-titulo"><span>Foto do registro</span><button class="modal-fechar" onclick="fecharModal('modal-foto-reg')">×</button></div>
+    <img id="foto-reg-img" src="" style="width:100%;border-radius:10px;max-height:300px;object-fit:cover;">
+    <div class="modal-footer" style="justify-content:center;"><button class="btn-cancelar" onclick="fecharModal('modal-foto-reg')">Fechar</button></div>
+  </div>
+</div>
+
+<!-- TELA FUNCIONÁRIO -->
+<div class="tela" id="tela-func">
+  <div class="func-app">
+    <div class="func-topbar">
+      <div class="func-topbar-logo">MR4 PONTO</div>
+      <div class="func-topbar-user"><strong id="func-nome-top">—</strong>Ponto digital</div>
+    </div>
+    <div class="func-body">
+      <div class="func-aba ativa" id="aba-ponto">
+        <div class="func-relogio">
+          <div class="func-hora" id="func-hora">00:00</div>
+          <div class="func-data" id="func-data-str">—</div>
+        </div>
+        <div id="est-aguardando">
+          <div class="btn-ponto-wrap">
+            <div class="btn-ponto-grande" id="btn-bater" onclick="iniciarBatida()">
+              <svg width="36" height="36" viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="18" cy="18" r="14"/><polyline points="18 10 18 18 22 22"/></svg>
+              <div class="btn-ponto-label" id="lbl-prox">Entrada</div>
+            </div>
+          </div>
+          <div class="loc-info"><div class="loc-dot loading" id="loc-dot"></div><span id="loc-txt">Obtendo localização...</span></div>
+        </div>
+        <div id="est-camera" style="display:none;">
+          <div class="aviso">Tire uma selfie para registrar o ponto</div>
+          <div class="camera-area"><video id="video-cam" class="camera-video" autoplay playsinline muted></video><canvas id="canvasFoto"></canvas></div>
+          <div class="camera-controles"><button class="btn-cancelar-cam" onclick="cancelarCam()">Cancelar</button><button class="btn-capturar" onclick="capturarFoto()">Registrar ponto</button></div>
+        </div>
+        <div id="est-proc" style="display:none;"><div class="msg-estado"><span class="loading-spin"></span>Salvando no Firebase...</div></div>
+        <div id="est-comp" style="display:none;"><div class="comprovante" id="comp-content"></div><button class="btn-laranja" onclick="voltarPonto()">OK</button></div>
+        <div style="margin-top:1.5rem;">
+          <div class="hist-titulo">Hoje</div>
+          <div id="hist-dia"><div style="font-size:13px;color:var(--cinza-texto);">Nenhum registro ainda.</div></div>
+        </div>
+      </div>
+      <div class="func-aba" id="aba-banco"><div id="banco-func"></div></div>
+    </div>
+    <div class="func-tabs">
+      <div class="func-tab ativo" onclick="mudarAba('ponto',this)">Ponto</div>
+      <div class="func-tab" onclick="mudarAba('banco',this)">Banco de horas</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const SENHA = 'Paulo.88';
+const EMP_LAT = -3.7565;
+const EMP_LNG = -38.5563;
+const RAIO = 200;
+const JORNADA = 8;
+
+let funcAtivo = null;
+let streamCam = null;
+let fotoBase64 = null;
+let locAtual = null;
+let editFuncId = null;
+let avalFuncId = null;
+let notaAv = 0;
+let fotoNova = null;
+
+// Firebase helpers
+function db() { return window._db; }
+function col(nome) { return window._col(db(), nome); }
+function docRef(nome, id) { return window._doc(db(), nome, id); }
+
+async function fbGet(colNome) {
+  const snap = await window._getDocs(col(colNome));
+  return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+}
+async function fbSet(colNome, id, data) {
+  await window._setDoc(docRef(colNome, id), data, { merge: true });
+}
+async function fbDel(colNome, id) {
+  await window._deleteDoc(docRef(colNome, id));
+}
+
+// Utilitários
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
+function hoje() { return new Date().toISOString().slice(0,10); }
+function mesAtual() { const n=new Date(); return `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}`; }
+function toMin(t) { if(!t) return null; const [h,m]=t.split(':').map(Number); return h*60+m; }
+function fmtMin(m) { if(m===null||m===undefined) return '—'; const s=m<0?'-':''; const a=Math.abs(Math.round(m)); return s+Math.floor(a/60)+'h'+String(a%60).padStart(2,'0'); }
+function iniciais(n) { if(!n) return '?'; return n.trim().split(' ').slice(0,2).map(x=>x[0]).join('').toUpperCase(); }
+function fmtData(d) { if(!d) return '—'; const [y,m,dd]=d.split('-'); return `${dd}/${m}/${y}`; }
+function distM(la1,lo1,la2,lo2) { const R=6371000; const dL=(la2-la1)*Math.PI/180; const dO=(lo2-lo1)*Math.PI/180; const a=Math.sin(dL/2)**2+Math.cos(la1*Math.PI/180)*Math.cos(la2*Math.PI/180)*Math.sin(dO/2)**2; return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a)); }
+function calcTotal(e,sa,ra,s) { if(!e||!s) return null; let t=toMin(s)-toMin(e); if(sa&&ra) t-=(toMin(ra)-toMin(sa)); return t; }
+function notif(msg,tipo='verde') { const el=document.getElementById('notif'); el.textContent=msg; el.className='notif '+tipo; el.style.display='block'; setTimeout(()=>el.style.display='none',3000); }
+
+// Login
+function fazerLogin() {
+  if(document.getElementById('inp-senha').value===SENHA) { irDash(); }
+  else { document.getElementById('erro-login').style.display='block'; }
+}
+function irDash() {
+  document.getElementById('login').classList.remove('ativa');
+  document.getElementById('dashboard').classList.add('ativa');
+  atualizarData();
+  renderHoje();
+}
+function sair() {
+  document.getElementById('dashboard').classList.remove('ativa');
+  document.getElementById('login').classList.add('ativa');
+  document.getElementById('inp-senha').value='';
+  document.getElementById('erro-login').style.display='none';
+}
+function irFuncLogin() {
+  const params=new URLSearchParams(window.location.search);
+  const fid=params.get('f');
+  if(fid) { carregarFuncPorId(fid); return; }
+  document.getElementById('login').classList.remove('ativa');
+  mostrarSelecFuncionario();
+}
+async function mostrarSelecFuncionario() {
+  const funcs = await fbGet('funcionarios');
+  if(!funcs.length) { document.getElementById('login').classList.add('ativa'); alert('Nenhum funcionário cadastrado.'); return; }
+  iniciarAppFunc(funcs[0]);
+}
+async function carregarFuncPorId(id) {
+  const snap = await window._getDoc(docRef('funcionarios', id));
+  if(snap.exists()) { iniciarAppFunc({ id: snap.id, ...snap.data() }); }
+  else { document.getElementById('login').classList.add('ativa'); }
+}
+
+function atualizarData() {
+  const n=new Date(); const dias=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb']; const meses=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+  document.getElementById('topbar-data').textContent=`${dias[n.getDay()]}, ${n.getDate()} ${meses[n.getMonth()]}`;
+}
+
+// App funcionário
+function iniciarAppFunc(func) {
+  funcAtivo = func;
+  document.getElementById('func-nome-top').textContent = func.nome.split(' ')[0];
+  document.getElementById('login').classList.remove('ativa');
+  document.getElementById('tela-func').classList.add('ativa');
+  iniciarRelogio();
+  obterLoc();
+  renderHistDia();
+  renderBancoFunc();
+}
+
+function iniciarRelogio() {
+  function tick() {
+    const n=new Date();
+    document.getElementById('func-hora').textContent=n.toTimeString().slice(0,5);
+    const dias=['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
+    const meses=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+    document.getElementById('func-data-str').textContent=`${dias[n.getDay()]}, ${n.getDate()} de ${meses[n.getMonth()]}`;
+  }
+  tick(); setInterval(tick,1000);
+}
+
+function obterLoc() {
+  const dot=document.getElementById('loc-dot'); const txt=document.getElementById('loc-txt');
+  if(!navigator.geolocation){txt.textContent='GPS não disponível';return;}
+  navigator.geolocation.getCurrentPosition(pos=>{
+    locAtual={lat:pos.coords.latitude,lng:pos.coords.longitude};
+    const dist=Math.round(distM(locAtual.lat,locAtual.lng,EMP_LAT,EMP_LNG));
+    if(dist<=RAIO){dot.className='loc-dot ok';txt.textContent=`Dentro do raio (${dist}m da empresa)`;}
+    else{dot.className='loc-dot warn';txt.textContent=`Fora do raio (${dist}m da empresa)`;}
+  },()=>{txt.textContent='Localização não obtida';dot.className='loc-dot warn';});
+}
+
+async function proxPonto() {
+  const regs = await fbGet('registros');
+  const hoje_str = hoje();
+  const regHoje = regs.filter(r=>r.funcId===funcAtivo.id&&r.data===hoje_str).sort((a,b)=>a.hora>b.hora?1:-1);
+  const ult = regHoje[regHoje.length-1];
+  if(!ult) return {tipo:'entrada',label:'Entrada',classe:''};
+  if(ult.tipo==='entrada') return {tipo:'saida_almoco',label:'Saída almoço',classe:'saida-almoco'};
+  if(ult.tipo==='saida_almoco') return {tipo:'retorno_almoco',label:'Retorno',classe:'retorno'};
+  if(ult.tipo==='retorno_almoco') return {tipo:'saida',label:'Saída',classe:'saida'};
+  return null;
+}
+
+async function iniciarBatida() {
+  const prox = await proxPonto();
+  if(!prox){notif('Ponto do dia completo!');return;}
+  document.getElementById('btn-bater').className='btn-ponto-grande '+(prox.classe||'');
+  document.getElementById('lbl-prox').textContent=prox.label;
+  document.getElementById('est-aguardando').style.display='none';
+  document.getElementById('est-camera').style.display='block';
+  try {
+    streamCam = await navigator.mediaDevices.getUserMedia({video:{facingMode:'user'},audio:false});
+    document.getElementById('video-cam').srcObject=streamCam;
+  } catch(e) {
+    cancelarCam();
+    await finalizarBatida(null, prox);
+  }
+}
+
+function cancelarCam() {
+  if(streamCam){streamCam.getTracks().forEach(t=>t.stop());streamCam=null;}
+  document.getElementById('est-camera').style.display='none';
+  document.getElementById('est-aguardando').style.display='block';
+}
+
+async function capturarFoto() {
+  const video=document.getElementById('video-cam');
+  const canvas=document.getElementById('canvasFoto');
+  canvas.width=video.videoWidth||320; canvas.height=video.videoHeight||240;
+  canvas.getContext('2d').drawImage(video,0,0);
+  const foto=canvas.toDataURL('image/jpeg',0.5);
+  if(streamCam){streamCam.getTracks().forEach(t=>t.stop());streamCam=null;}
+  document.getElementById('est-camera').style.display='none';
+  document.getElementById('est-proc').style.display='block';
+  const prox = await proxPonto();
+  await finalizarBatida(foto, prox);
+}
+
+async function finalizarBatida(foto, prox) {
+  if(!prox) return;
+  const dentroRaio = locAtual ? distM(locAtual.lat,locAtual.lng,EMP_LAT,EMP_LNG)<=RAIO : null;
+  const id = uid();
+  const reg = {
+    id, funcId: funcAtivo.id, funcNome: funcAtivo.nome,
+    data: hoje(), hora: new Date().toTimeString().slice(0,8),
+    tipo: prox.tipo, tipoLabel: prox.label,
+    lat: locAtual?.lat||null, lng: locAtual?.lng||null,
+    dentroRaio, foto: foto||null,
+    criadoEm: new Date().toISOString()
+  };
+  try {
+    await fbSet('registros', id, reg);
+    document.getElementById('est-proc').style.display='none';
+    mostrarComp(reg, dentroRaio);
+    renderHistDia();
+    renderBancoFunc();
+  } catch(e) {
+    document.getElementById('est-proc').style.display='none';
+    document.getElementById('est-aguardando').style.display='block';
+    notif('Erro ao salvar. Verifique conexão.','vermelho');
+  }
+}
+
+function mostrarComp(reg, dentroRaio) {
+  const locTxt=dentroRaio===true?'Dentro do raio':dentroRaio===false?'Fora do raio':'Não obtida';
+  const locClass=dentroRaio===true?'verde':'warn';
+  document.getElementById('comp-content').innerHTML=`
+    <div class="comp-titulo">✓ Ponto registrado no Firebase</div>
+    <div class="comp-row"><span class="comp-label">Funcionário</span><span class="comp-val">${reg.funcNome}</span></div>
+    <div class="comp-row"><span class="comp-label">Tipo</span><span class="comp-val">${reg.tipoLabel}</span></div>
+    <div class="comp-row"><span class="comp-label">Horário</span><span class="comp-val">${reg.hora.slice(0,5)}</span></div>
+    <div class="comp-row"><span class="comp-label">Data</span><span class="comp-val">${fmtData(reg.data)}</span></div>
+    <div class="comp-row"><span class="comp-label">Localização</span><span class="comp-val ${locClass}">${locTxt}</span></div>
+    ${reg.foto?`<div style="margin-top:10px;"><img src="${reg.foto}" style="width:100%;border-radius:8px;max-height:160px;object-fit:cover;"></div>`:''}`;
+  document.getElementById('est-comp').style.display='block';
+}
+
+async function voltarPonto() {
+  document.getElementById('est-comp').style.display='none';
+  document.getElementById('est-aguardando').style.display='block';
+  obterLoc();
+  const prox = await proxPonto();
+  const btn=document.getElementById('btn-bater');
+  if(!prox){btn.style.opacity='0.4';document.getElementById('lbl-prox').textContent='Concluído';}
+  else{btn.style.opacity='1';btn.className='btn-ponto-grande '+(prox.classe||'');document.getElementById('lbl-prox').textContent=prox.label;}
+}
+
+async function renderHistDia() {
+  if(!funcAtivo) return;
+  const regs=(await fbGet('registros')).filter(r=>r.funcId===funcAtivo.id&&r.data===hoje()).sort((a,b)=>a.hora>b.hora?1:-1);
+  const cores={entrada:'#22C55E',saida_almoco:'#F59E0B',retorno_almoco:'#60A5FA',saida:'#EF4444'};
+  const el=document.getElementById('hist-dia');
+  if(!regs.length){el.innerHTML='<div style="font-size:13px;color:var(--cinza-texto);">Nenhum registro ainda.</div>';return;}
+  el.innerHTML=regs.map(r=>`<div class="hist-item"><div class="hist-dot" style="background:${cores[r.tipo]||'#888'}"></div><div class="hist-hora">${r.hora.slice(0,5)}</div><div class="hist-tipo">${r.tipoLabel}</div>${r.dentroRaio===false?'<span style="font-size:10px;color:var(--amarelo)">Fora raio</span>':''}</div>`).join('');
+  const prox=await proxPonto();
+  const btn=document.getElementById('btn-bater');
+  if(!prox){btn.style.opacity='0.4';document.getElementById('lbl-prox').textContent='Concluído';}
+  else{btn.style.opacity='1';btn.className='btn-ponto-grande '+(prox.classe||'');document.getElementById('lbl-prox').textContent=prox.label;}
+}
+
+async function renderBancoFunc() {
+  if(!funcAtivo) return;
+  const regs=(await fbGet('registros')).filter(r=>r.funcId===funcAtivo.id&&r.data.startsWith(mesAtual()));
+  const dias={};
+  regs.forEach(r=>{if(!dias[r.data])dias[r.data]={};dias[r.data][r.tipo]=r.hora;});
+  let trabMin=0;
+  Object.values(dias).forEach(d=>{
+    const e=d.entrada,s=d.saida,sa=d.saida_almoco,ra=d.retorno_almoco;
+    const t=calcTotal(e?.slice(0,5),sa?.slice(0,5),ra?.slice(0,5),s?.slice(0,5));
+    if(t) trabMin+=t;
+  });
+  const diasTrab=Object.keys(dias).length;
+  const esperMin=diasTrab*JORNADA*60;
+  const saldo=trabMin-esperMin;
+  document.getElementById('banco-func').innerHTML=`
+    <div class="banco-card"><div><div class="banco-label">Trabalhado no mês</div><div class="banco-valor">${fmtMin(trabMin)}</div></div><div style="text-align:right"><div class="banco-label">Saldo banco</div><div class="banco-valor" style="color:${saldo>=0?'var(--verde)':'var(--vermelho)'}">${saldo>=0?'+':''}${fmtMin(saldo)}</div></div></div>
+    <div class="banco-card"><div><div class="banco-label">Dias trabalhados</div><div class="banco-valor">${diasTrab}</div></div><div style="text-align:right"><div class="banco-label">Horas esperadas</div><div class="banco-valor">${fmtMin(esperMin)}</div></div></div>`;
+}
+
+function mudarAba(aba,el) {
+  document.querySelectorAll('.func-aba').forEach(a=>a.classList.remove('ativa'));
+  document.querySelectorAll('.func-tab').forEach(t=>t.classList.remove('ativo'));
+  document.getElementById('aba-'+aba).classList.add('ativa');
+  el.classList.add('ativo');
+  if(aba==='banco') renderBancoFunc();
+}
+
+// DASHBOARD
+async function renderHoje() {
+  const funcs=await fbGet('funcionarios');
+  const regs=await fbGet('registros');
+  const regsHoje=regs.filter(r=>r.data===hoje());
+  let presentes=0,ausentes=0,atrasados=0;
+  funcs.forEach(f=>{
+    const rf=regsHoje.filter(r=>r.funcId===f.id);
+    if(rf.length) presentes++; else ausentes++;
+    const ent=rf.find(r=>r.tipo==='entrada');
+    if(ent&&toMin(ent.hora.slice(0,5))>toMin('08:05')) atrasados++;
+  });
+  document.getElementById('metrics-hoje').innerHTML=`
+    <div class="metric-card"><div class="metric-label">Funcionários</div><div class="metric-valor">${funcs.length}</div></div>
+    <div class="metric-card"><div class="metric-label">Presentes hoje</div><div class="metric-valor verde">${presentes}</div></div>
+    <div class="metric-card"><div class="metric-label">Ausentes</div><div class="metric-valor ${ausentes?'vermelho':''}">${ausentes}</div></div>
+    <div class="metric-card"><div class="metric-label">Atrasados</div><div class="metric-valor ${atrasados?'laranja':''}">${atrasados}</div></div>`;
+
+  if(!funcs.length){document.getElementById('tbody-hoje').innerHTML='<tr><td colspan="7" class="vazio">Nenhum funcionário cadastrado.</td></tr>';return;}
+  document.getElementById('tbody-hoje').innerHTML=funcs.map(f=>{
+    const rf=regsHoje.filter(r=>r.funcId===f.id);
+    const get=tipo=>{const r=rf.find(r=>r.tipo===tipo);return r?r.hora.slice(0,5):null;};
+    const e=get('entrada'),sa=get('saida_almoco'),ra=get('retorno_almoco'),s=get('saida');
+    const total=calcTotal(e,sa,ra,s);
+    const atrasou=e&&toMin(e)>toMin('08:05');
+    const status=rf.length===0?'ausente':atrasou?'atrasou':'presente';
+    const labels={presente:'Presente',ausente:'Ausente',atrasou:'Atrasou'};
+    return `<tr><td><div class="func-cell"><div class="avatar">${f.foto?`<img src="${f.foto}">`:''}${!f.foto?iniciais(f.nome):''}</div><div class="func-cell-info"><div class="nome">${f.nome}</div><div class="cargo">${f.cargo||''}</div></div></div></td><td>${e||'—'}</td><td>${sa||'—'}</td><td>${ra||'—'}</td><td>${s||'—'}</td><td>${fmtMin(total)}</td><td><span class="badge ${status}">${labels[status]}</span></td></tr>`;
+  }).join('');
+
+  const ultimas=[...regs].sort((a,b)=>a.criadoEm>b.criadoEm?-1:1).slice(0,5);
+  document.getElementById('ultimas-batidas').innerHTML=ultimas.length?`<div class="tabela-wrap"><table><thead><tr><th>Funcionário</th><th>Tipo</th><th>Horário</th><th>GPS</th><th>Foto</th></tr></thead><tbody>${ultimas.map(r=>`<tr><td>${r.funcNome}</td><td>${r.tipoLabel}</td><td>${fmtData(r.data)} ${r.hora.slice(0,5)}</td><td>${r.dentroRaio===true?'<span class="badge dentro">Dentro</span>':r.dentroRaio===false?'<span class="badge fora">Fora</span>':'—'}</td><td>${r.foto?`<button class="btn-acao" onclick="verFoto('${r.id}')">Ver</button>`:'—'}</td></tr>`).join('')}</tbody></table></div>`:'<div style="color:var(--cinza-texto);font-size:13px;">Nenhuma batida ainda.</div>';
+}
+
+async function verFoto(regId) {
+  const snap=await window._getDoc(docRef('registros',regId));
+  if(!snap.exists()||!snap.data().foto) return;
+  document.getElementById('foto-reg-img').src=snap.data().foto;
+  document.getElementById('modal-foto-reg').classList.add('aberto');
+}
+
+async function renderRegistros() {
+  const funcFil=document.getElementById('fil-func-reg').value;
+  const mesFil=document.getElementById('fil-mes').value;
+  let regs=await fbGet('registros');
+  if(funcFil) regs=regs.filter(r=>r.funcId===funcFil);
+  if(mesFil) regs=regs.filter(r=>r.data.startsWith(mesFil));
+  const grupos={};
+  regs.forEach(r=>{const k=r.funcId+'|'+r.data;if(!grupos[k])grupos[k]={funcId:r.funcId,funcNome:r.funcNome,data:r.data,regs:[]};grupos[k].regs.push(r);});
+  const rows=Object.values(grupos).sort((a,b)=>a.data>b.data?-1:1);
+  const funcs=await fbGet('funcionarios');
+  if(!rows.length){document.getElementById('tbody-registros').innerHTML='<tr><td colspan="10" class="vazio">Nenhum registro.</td></tr>';return;}
+  document.getElementById('tbody-registros').innerHTML=rows.map(({funcId,funcNome,data,regs})=>{
+    const get=tipo=>{const r=regs.find(r=>r.tipo===tipo);return r?r.hora.slice(0,5):null;};
+    const e=get('entrada'),sa=get('saida_almoco'),ra=get('retorno_almoco'),s=get('saida');
+    const total=calcTotal(e,sa,ra,s);
+    const func=funcs.find(f=>f.id===funcId);
+    const jornMin=(parseFloat(func?.jornada)||8)*60;
+    const saldo=total!==null?total-jornMin:null;
+    const fotoReg=regs.find(r=>r.foto);
+    const dentroRaio=regs.some(r=>r.dentroRaio===true)?true:regs.some(r=>r.dentroRaio===false)?false:null;
+    return `<tr><td>${funcNome}</td><td>${fmtData(data)}</td><td>${e||'—'}</td><td>${sa||'—'}</td><td>${ra||'—'}</td><td>${s||'—'}</td><td>${fmtMin(total)}</td><td>${saldo!==null?`<span class="badge ${saldo>=0?'extra':'debito'}">${saldo>=0?'+':''}${fmtMin(saldo)}</span>`:'—'}</td><td>${dentroRaio===true?'<span class="badge dentro">Dentro</span>':dentroRaio===false?'<span class="badge fora">Fora</span>':'—'}</td><td>${fotoReg?`<button class="btn-acao" onclick="verFoto('${fotoReg.id}')">Ver</button>`:'—'}</td></tr>`;
+  }).join('');
+}
+
+async function renderBanco() {
+  const funcs=await fbGet('funcionarios');
+  const regs=await fbGet('registros');
+  if(!funcs.length){document.getElementById('banco-cards').innerHTML='<div style="color:var(--cinza-texto);font-size:14px;">Nenhum funcionário cadastrado.</div>';document.getElementById('metrics-banco').innerHTML='';return;}
+  let totalPos=0,totalNeg=0;
+  const cards=funcs.map(f=>{
+    const regsF=regs.filter(r=>r.funcId===f.id&&r.data.startsWith(mesAtual()));
+    const dias={};
+    regsF.forEach(r=>{if(!dias[r.data])dias[r.data]={};dias[r.data][r.tipo]=r.hora;});
+    let trabMin=0;
+    Object.values(dias).forEach(d=>{const t=calcTotal(d.entrada?.slice(0,5),d.saida_almoco?.slice(0,5),d.retorno_almoco?.slice(0,5),d.saida?.slice(0,5));if(t)trabMin+=t;});
+    const diasTrab=Object.keys(dias).length;
+    const jornMin=(parseFloat(f.jornada)||8)*60;
+    const esperMin=diasTrab*jornMin;
+    const saldo=trabMin-esperMin;
+    if(saldo>0)totalPos+=saldo; else totalNeg+=saldo;
+    const pct=esperMin>0?Math.min(100,Math.round(trabMin/esperMin*100)):0;
+    return `<div class="ficha"><div style="display:flex;align-items:center;gap:14px;margin-bottom:12px;"><div class="ficha-avatar" style="width:48px;height:48px;font-size:16px;">${f.foto?`<img src="${f.foto}">`:''}${!f.foto?iniciais(f.nome):''}</div><div style="flex:1;"><div style="font-size:16px;font-weight:700;">${f.nome}</div><div style="font-size:12px;color:var(--cinza-texto);">${f.cargo||''}</div></div><span class="badge ${saldo>=0?'extra':'debito'}">${saldo>=0?'+':''}${fmtMin(saldo)}</span></div><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px;"><div class="ficha-campo"><div class="fc-label">Trabalhado</div><div class="fc-valor">${fmtMin(trabMin)}</div></div><div class="ficha-campo"><div class="fc-label">Esperado</div><div class="fc-valor">${fmtMin(esperMin)}</div></div><div class="ficha-campo"><div class="fc-label">Dias</div><div class="fc-valor">${diasTrab}</div></div></div><div class="barra-wrap"><div class="barra" style="width:${pct}%;background:${saldo>=0?'#22C55E':'#EF4444'};"></div></div></div>`;
+  }).join('');
+  document.getElementById('banco-cards').innerHTML=cards;
+  document.getElementById('metrics-banco').innerHTML=`<div class="metric-card"><div class="metric-label">Funcionários</div><div class="metric-valor">${funcs.length}</div></div><div class="metric-card"><div class="metric-label">Registros total</div><div class="metric-valor">${regs.length}</div></div><div class="metric-card"><div class="metric-label">Extras acum.</div><div class="metric-valor verde">+${fmtMin(totalPos)}</div></div><div class="metric-card"><div class="metric-label">Débitos acum.</div><div class="metric-valor vermelho">${fmtMin(totalNeg)}</div></div>`;
+}
+
+async function renderFuncionarios() {
+  const funcs=await fbGet('funcionarios');
+  const avals=await fbGet('avaliacoes');
+  if(!funcs.length){document.getElementById('lista-funcionarios').innerHTML='<div style="color:var(--cinza-texto);font-size:14px;padding:1rem 0;">Nenhum funcionário. Clique em "+ Novo funcionário".</div>';return;}
+  document.getElementById('lista-funcionarios').innerHTML=funcs.map(f=>{
+    const av=avals.find(a=>a.id===f.id);
+    const estrelas=av?.nota?'★'.repeat(av.nota)+'☆'.repeat(5-av.nota):'☆☆☆☆☆';
+    return `<div class="ficha"><div class="ficha-header"><div class="ficha-avatar">${f.foto?`<img src="${f.foto}">`:''}${!f.foto?iniciais(f.nome):''}</div><div><div class="ficha-nome">${f.nome}</div><div class="ficha-cargo">${f.cargo||'Sem cargo'} ${f.admissao?'· Desde '+fmtData(f.admissao):''}</div><div style="color:var(--laranja);font-size:14px;margin-top:2px;">${estrelas}</div></div></div><div class="ficha-grid"><div class="ficha-campo"><div class="fc-label">CPF</div><div class="fc-valor">${f.cpf||'—'}</div></div><div class="ficha-campo"><div class="fc-label">Telefone</div><div class="fc-valor">${f.telefone||'—'}</div></div><div class="ficha-campo"><div class="fc-label">Nascimento</div><div class="fc-valor">${fmtData(f.nascimento)}</div></div><div class="ficha-campo"><div class="fc-label">Salário</div><div class="fc-valor">${f.salario?'R$ '+parseFloat(f.salario).toLocaleString('pt-BR',{minimumFractionDigits:2}):'—'}</div></div><div class="ficha-campo"><div class="fc-label">Jornada</div><div class="fc-valor">${f.jornada||8}h/dia</div></div><div class="ficha-campo" style="grid-column:1/-1"><div class="fc-label">Endereço</div><div class="fc-valor">${f.endereco||'—'}</div></div></div><div class="ficha-acoes"><button class="btn-acao" onclick="editarFunc('${f.id}')">Editar</button><button class="btn-acao" onclick="abrirFicha('${f.id}')">Avaliação</button><button class="btn-acao danger" onclick="removerFunc('${f.id}')">Remover</button></div></div>`;
+  }).join('');
+  // Atualiza filtros
+  const sel=document.getElementById('fil-func-reg');
+  sel.innerHTML='<option value="">Todos</option>'+funcs.map(f=>`<option value="${f.id}">${f.nome}</option>`).join('');
+}
+
+async function renderLinks() {
+  const funcs=await fbGet('funcionarios');
+  const base=window.location.href.split('?')[0];
+  if(!funcs.length){document.getElementById('lista-links').innerHTML='<div style="color:var(--cinza-texto);font-size:14px;">Cadastre funcionários para gerar os links.</div>';return;}
+  document.getElementById('lista-links').innerHTML=funcs.map(f=>{
+    const url=`${base}?f=${f.id}`;
+    return `<div class="link-card"><div><div style="font-size:13px;font-weight:600;margin-bottom:4px;">${f.nome}</div><div class="link-url">${url}</div></div><button class="btn-copiar" onclick="copiarLink('${url}',this)">Copiar</button></div>`;
+  }).join('');
+}
+
+function copiarLink(url,btn){navigator.clipboard.writeText(url).then(()=>{btn.textContent='Copiado!';setTimeout(()=>btn.textContent='Copiar',2000);});}
+
+// Funcionário CRUD
+async function abrirModalFunc(id) {
+  editFuncId=id||null; fotoNova=null;
+  document.getElementById('modal-func-titulo').textContent=id?'Editar funcionário':'Novo funcionário';
+  if(id){
+    const snap=await window._getDoc(docRef('funcionarios',id));
+    const f=snap.data();
+    document.getElementById('f-nome').value=f.nome||'';
+    document.getElementById('f-cpf').value=f.cpf||'';
+    document.getElementById('f-rg').value=f.rg||'';
+    document.getElementById('f-nasc').value=f.nascimento||'';
+    document.getElementById('f-tel').value=f.telefone||'';
+    document.getElementById('f-end').value=f.endereco||'';
+    document.getElementById('f-cargo').value=f.cargo||'';
+    document.getElementById('f-admissao').value=f.admissao||'';
+    document.getElementById('f-salario').value=f.salario||'';
+    document.getElementById('f-obs').value=f.obs||'';
+    if(f.foto){document.getElementById('foto-preview').innerHTML=`<img src="${f.foto}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;}
+  } else {
+    ['f-nome','f-cpf','f-rg','f-nasc','f-tel','f-end','f-cargo','f-admissao','f-salario','f-obs'].forEach(i=>document.getElementById(i).value='');
+    document.getElementById('foto-preview').innerHTML=`<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#555" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>`;
+  }
+  document.getElementById('modal-func').classList.add('aberto');
+}
+
+function editarFunc(id){abrirModalFunc(id);}
+
+function previewFoto(inp){
+  const file=inp.files[0]; if(!file) return;
+  const reader=new FileReader();
+  reader.onload=e=>{fotoNova=e.target.result;document.getElementById('foto-preview').innerHTML=`<img src="${fotoNova}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`};
+  reader.readAsDataURL(file);
+}
+
+async function salvarFuncionario(){
+  const nome=document.getElementById('f-nome').value.trim();
+  if(!nome){notif('Nome é obrigatório','vermelho');return;}
+  const id=editFuncId||uid();
+  const data={
+    nome, cpf:document.getElementById('f-cpf').value, rg:document.getElementById('f-rg').value,
+    nascimento:document.getElementById('f-nasc').value, telefone:document.getElementById('f-tel').value,
+    endereco:document.getElementById('f-end').value, cargo:document.getElementById('f-cargo').value,
+    admissao:document.getElementById('f-admissao').value, salario:document.getElementById('f-salario').value,
+    jornada:document.getElementById('f-jornada').value, obs:document.getElementById('f-obs').value,
+    atualizadoEm:new Date().toISOString()
+  };
+  if(fotoNova) data.foto=fotoNova;
+  if(!editFuncId) data.criadoEm=new Date().toISOString();
+  await fbSet('funcionarios',id,data);
+  fotoNova=null; editFuncId=null;
+  fecharModal('modal-func');
+  renderFuncionarios();
+  notif(editFuncId?'Funcionário atualizado!':'Funcionário cadastrado!');
+}
+
+async function removerFunc(id){
+  if(!confirm('Remover este funcionário?')) return;
+  await fbDel('funcionarios',id);
+  renderFuncionarios();
+  notif('Removido','vermelho');
+}
+
+// Avaliação
+async function abrirFicha(id){
+  avalFuncId=id;
+  const snap=await window._getDoc(docRef('funcionarios',id));
+  const f=snap.data();
+  const avSnap=await window._getDoc(docRef('avaliacoes',id));
+  const av=avSnap.exists()?avSnap.data():{};
+  notaAv=av.nota||0;
+  document.getElementById('ficha-conteudo').innerHTML=`<div style="display:flex;align-items:center;gap:14px;margin-bottom:1rem;padding:14px;background:var(--cinza-medio);border-radius:10px;"><div class="ficha-avatar" style="width:54px;height:54px;font-size:18px;flex-shrink:0;">${f.foto?`<img src="${f.foto}">`:''}${!f.foto?iniciais(f.nome):''}</div><div><div style="font-size:17px;font-weight:700;">${f.nome}</div><div style="font-size:12px;color:var(--cinza-texto);">${f.cargo||''} · Admissão: ${fmtData(f.admissao)}</div></div></div>`;
+  renderEstrelas();
+  document.getElementById('inp-metas').value=av.metas||'';
+  document.getElementById('inp-obs-av').value=av.obs||'';
+  document.getElementById('inp-adv').value=av.advertencias||'';
+  document.getElementById('modal-ficha').classList.add('aberto');
+}
+
+function renderEstrelas(){document.getElementById('estrelas-av').innerHTML=[1,2,3,4,5].map(n=>`<div class="estrela ${n<=notaAv?'ativa':''}" onclick="setNota(${n})">★</div>`).join('');}
+function setNota(n){notaAv=n;renderEstrelas();}
+
+async function salvarAvaliacao(){
+  await fbSet('avaliacoes',avalFuncId,{nota:notaAv,metas:document.getElementById('inp-metas').value,obs:document.getElementById('inp-obs-av').value,advertencias:document.getElementById('inp-adv').value,atualizadoEm:new Date().toISOString()});
+  notif('Avaliação salva!');
+  fecharModal('modal-ficha');
+  renderFuncionarios();
+}
+
+// Navegação
+function mudarSecao(id,el){
+  document.querySelectorAll('.dash-secao').forEach(s=>s.classList.remove('ativa'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('ativo'));
+  document.getElementById('sec-'+id).classList.add('ativa');
+  el.classList.add('ativo');
+  if(id==='hoje') renderHoje();
+  if(id==='registros'){document.getElementById('fil-mes').value=mesAtual();renderRegistros();}
+  if(id==='banco') renderBanco();
+  if(id==='funcionarios') renderFuncionarios();
+  if(id==='links') renderLinks();
+}
+
+function fecharModal(id){document.getElementById(id).classList.remove('aberto');}
+
+// Init
+window.addEventListener('firebaseReady',()=>{
+  const params=new URLSearchParams(window.location.search);
+  const fid=params.get('f');
+  if(fid) carregarFuncPorId(fid);
+});
+window.addEventListener('DOMContentLoaded',()=>{
+  document.getElementById('fil-mes').value=mesAtual();
+  if(window._firebaseReady){
+    const params=new URLSearchParams(window.location.search);
+    const fid=params.get('f');
+    if(fid) carregarFuncPorId(fid);
+  }
+});
+</script>
+</body>
+</html>
