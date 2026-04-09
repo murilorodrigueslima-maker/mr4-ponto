@@ -1481,8 +1481,10 @@ async function gerarEspelho(){
       totalLabel=fmtMin(total);
     } else if(ehFuturo){
       totalLabel='—'; // dia futuro, não mostra falta
+    } else if(e) {
+      totalLabel='Incompleto'; // tem entrada mas falta bater saída
     } else {
-      totalLabel='Falta'; // dia passado sem registro e sem crédito
+      totalLabel='Falta'; // dia passado sem nenhum registro
     }
 
     // Ocorrência: mostra justificativa aprovada ou crédito
@@ -1518,7 +1520,7 @@ async function gerarEspelho(){
         <tbody>
           ${linhas.map(l=>{
             const bgColor=l.ehFimSemana?'background:#eeeeee;':l.temCredito&&!l.entrada?'background:#f0fff4;':l.justif?'background:#fff8e1;':'';
-            const totalColor=l.totalLabel==='Falta'?'color:#c0392b;font-weight:600;':'color:#111;';
+            const totalColor=l.totalLabel==='Falta'?'color:#c0392b;font-weight:600;':l.totalLabel==='Incompleto'?'color:#e67e22;font-weight:600;':'color:#111;';
             const saldoColor=l.saldoDia>0?'color:#1a7a3a;font-weight:600;':l.saldoDia<0?'color:#c0392b;font-weight:600;':'color:#111;';
             const ocorrenciaColor=l.temCredito&&!l.entrada?'color:#1a7a3a;':'color:#c0392b;';
             return `<tr style="${bgColor}">
